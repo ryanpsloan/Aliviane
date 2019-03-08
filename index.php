@@ -31,13 +31,16 @@
         }
         .card {
             margin: 24px 0;
-            box-shadow: 1px 2px lightskyblue;
+            border: none;
         }
         legend {
             background-color: lightskyblue;
         }
         h4 {
             padding: 8px;
+        }
+        .border {
+            border: 3px solid blueviolet;
         }
     </style>
 </head>
@@ -57,6 +60,9 @@
             echo $_SESSION['output']['message'];
             echo $_SESSION['output']['link'];
             echo '<p><a href="./clear.php">Reset Form</a></p>';
+            foreach($_SESSION['output']['warn'] as $value) {
+                echo $value;
+            }
             foreach ($_SESSION['output']['ui'] as $value) {
                 //var_dump($value);
                 echo $value;
