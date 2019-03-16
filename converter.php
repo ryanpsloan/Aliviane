@@ -25,11 +25,18 @@ try {
             $fileData[] = fgetcsv($handle, 100000000, ",", '"');
         }
         fclose($handle);
+        $duplicationArray = array('E01' => 'E02', 'E35' => 'E40', 'E37' => 'E42', 'E33' => 'E38');
+        $valuesToDuplicate = array();
+        foreach($fileData as $key => $value){
+            if(in_array($value[2], $duplicationArray)){
+                $valuesToDuplicate[] = $value;
+            }
+        }
         //var_dump($fileData);
         $data = $toProcess = $ui = array();
         $codesToCapture = array('M05','M08','M11','M12','M15','M17','M18','M19','M26');
         $codesToSkip = array('M20','M21','M22','M23','M24','M25');
-        $codesToCalculate = array('E01','E07','E18','E33','E35','E37','E38','E40','E42');
+        $codesToCalculate = array('E01','E02','E07','E18','E33','E35','E37','E38','E40','E42');
         foreach($fileData as $key => $line){
             $eeNum = trim($line[0]);
             $earnCode = trim($line[2]);
@@ -43,7 +50,7 @@ try {
         foreach($toProcess as $eeNum){
             foreach($fileData as $key => $line){
                 if($eeNum === trim($line[0])){
-                    $data[$eeNum][] = array("EE NUM" => trim($line[0]), "EE NAME" => trim($line[1]), "EARNING CODE" => trim($line[2]), "EARNING TITLE" => trim($line[3]), "HOURS" => (float) trim($line[4]), "PROGRAM" => trim($line[5]));
+                    $data[$eeNum][] = array("EE NUM" => trim($line[0]), "EE NAME" => trim($line[1]), "EARNING CODE" => trim($line[2]), "EARNING TITLE" => trim($line[3]), "HOURS" => (float) trim($line[4]), "PROGRAM" => trim($line[5]), "HOME PROGRAM" => trim($line[6]));
                 }
             }
         }
@@ -62,7 +69,7 @@ try {
             //Gather the M Code Hours - rekey array after filtering out 0.0s
             $mHours[$eeNum] = array_values(array_filter(array_map(function($element) use ($codesToCapture) {
                 if (in_array($element["EARNING CODE"], $codesToCapture)) {
-                    return $element["HOURS"];
+                    return array('HOURS' => $element["HOURS"], 'HOME PROGRAM' => $element["HOME PROGRAM"], 'PROGRAM' => $element['PROGRAM']);
                 }else {
                     return 0.0;
                 }
@@ -75,6 +82,15 @@ try {
                     return null;
                 }
             }, $array)));
+            //retrieve only the MCode lines
+            $filteredMCodeData[$eeNum] = array_values(array_filter(array_map(function($element) use ($codesToCapture){
+                if(in_array($element["EARNING CODE"], $codesToCapture)){
+                    return $element;
+                } else {
+                    return null;
+                }
+            }, $array)));
+
             //collect mCodes (rekey(filter(apply function to each element of array))
             $mCodes[$eeNum]= array_values(array_filter(array_map(function($element) use ($codesToCapture){
                if(in_array($element["EARNING CODE"], $codesToCapture)) {
@@ -85,7 +101,22 @@ try {
             },$array)));
         }
         //var_dump($eeHoursWorked, "MHOURS", $mHours, "FILTEREDDATA", $filteredData, "MCODES", $mCodes);
+        //var_dump("FILTERED MCODE DATA", $filteredMCodeData);
 
+        foreach($mCodes as $ee => $subArr){
+            $countedMCodes[$ee] = array_count_values($subArr);
+        }
+        //var_dump($countedMCodes);
+
+        $eeIdsWithMoreThanOneOfSameMCode = array();
+        foreach($countedMCodes as $ee => $arr){
+            foreach($arr as $subArr){
+                if($subArr > 1){
+                    $eeIdsWithMoreThanOneOfSameMCode[] = $ee;
+                }
+            }
+        }
+        //var_dump("MHOURS",$mHours, $eeIdsWithMoreThanOneOfSameMCode);
         $calculationData = array();
         foreach($filteredData as $eeNum => $array){
             //var_dump($eeNum);
@@ -96,30 +127,58 @@ try {
                 $percentage = $hours / $totalHours;
                 //var_dump($percentage);
                 $program = $line["PROGRAM"];
-                $calculationData[$eeNum][] = array("PERCENTAGE" => round($percentage, 2), "PROGRAM" => $program, "EE NAME" => $line["EE NAME"]);
+                $homeProgram = $line["HOME PROGRAM"];
+                $calculationData[$eeNum][] = array("PERCENTAGE" => round($percentage, 2), "PROGRAM" => $program, "EE NAME" => $line["EE NAME"], "HOME PROGRAM" => $homeProgram);
             }
         }
         //var_dump("CALCDATA", $calculationData);
         $warn = $calculationData2 = array();
         foreach($mHours as $eeNum => $array){
-            //var_dump($array);
-            for ($i = 0; $i < count($mHours[$eeNum]); $i++) {
-                $hoursToDistribute = $mHours[$eeNum][$i];
-                $earningCode = $mCodes[$eeNum][$i];
-                $arr = $calculationData[$eeNum] ? $calculationData[$eeNum] : null;
-                if($arr === null){
-                    $warn[$eeNum] = '<p>Warning: Employee Number => '. $eeNum . ': No E Codes found only M Codes</p>';
-                    continue;
+            if(in_array($eeNum, $eeIdsWithMoreThanOneOfSameMCode)){
+                for ($i = 0; $i < count($array); $i++) {
+                    $hoursToDistribute = $mHours[$eeNum][$i]['HOURS'];
+                    $earningCode = $mCodes[$eeNum][$i];
+                    $arr = $calculationData[$eeNum] ? $calculationData[$eeNum] : null;
+                    if ($arr === null) {
+                        $warn[$eeNum] = '<p>Warning: Employee Number => ' . $eeNum . ': No E Codes found only M Codes</p>';
+                        continue;
+                    }
+                    $mLineHomeProgram = $filteredMCodeData[$eeNum][$i]["HOME PROGRAM"];
+                    $mHoursLineProgram = $mHours[$eeNum][$i]['PROGRAM'];
+                    //var_dump($mLineHomeProgram, $mHoursLineProgram);
+                    //var_dump($eeNum. "CONDITION", $mHoursLineProgram == $mLineHomeProgram);
+                    if($mHoursLineProgram === $mLineHomeProgram){
+                        $calculationData2[$eeNum][] = array_map(function ($element) use ($hoursToDistribute, $earningCode) {
+                            $element["ACCRUAL"] = round(($element["PERCENTAGE"] * $hoursToDistribute), 2);
+                            $element["HOURS TO DISTRIBUTE"] = $hoursToDistribute;
+                            $element["EARNING CODE"] = str_replace("M", "E", $earningCode);
+                            //var_dump($element);
+                            return $element;
+                        }, $arr);
+                    }else {
+                        $calculationData2[$eeNum][] = array(array('EE NAME' => $arr[0]['EE NAME'], 'HOME PROGRAM' => $arr[0]['HOME PROGRAM'], 'PROGRAM' => $mHours[$eeNum][$i]['PROGRAM'], 'ACCRUAL' => $hoursToDistribute, "HOURS TO DISTRIBUTE" => $hoursToDistribute, "EARNING CODE" => str_replace("M", "E", $earningCode)));
+                    }
                 }
-                //var_dump($eeNum, $hoursToDistribute);
-                //var_dump("ARR", $arr);
-                $calculationData2[$eeNum][] = array_map(function($element) use ($hoursToDistribute, $earningCode){
-                    $element["ACCRUAL"] = round(($element["PERCENTAGE"] * $hoursToDistribute), 2);
-                    $element["HOURS TO DISTRIBUTE"] = $hoursToDistribute;
-                    $element["EARNING CODE"] = str_replace("M", "E", $earningCode);
-                    //var_dump($element);
-                    return $element;
-                }, $arr);
+            } else {
+                for ($i = 0; $i < count($array); $i++) {
+                    $hoursToDistribute = $mHours[$eeNum][$i]['HOURS'];
+                    $earningCode = $mCodes[$eeNum][$i];
+                    $arr = key_exists($eeNum, $calculationData) ? $calculationData[$eeNum] : null;
+                    if ($arr === null) {
+                        $warn[$eeNum] = '<p>Warning: Employee Number => ' . $eeNum . ': No E Codes found only M Codes</p>';
+                        continue;
+                    }
+                    //var_dump($eeNum, $hoursToDistribute);
+                    //var_dump("ARR", $arr);
+
+                    $calculationData2[$eeNum][] = array_map(function ($element) use ($hoursToDistribute, $earningCode) {
+                        $element["ACCRUAL"] = round(($element["PERCENTAGE"] * $hoursToDistribute), 2);
+                        $element["HOURS TO DISTRIBUTE"] = $hoursToDistribute;
+                        $element["EARNING CODE"] = str_replace("M", "E", $earningCode);
+                        //var_dump($element);
+                        return $element;
+                    }, $arr);
+                }
             }
         }
         //var_dump("CALCDATA2", $calculationData2);
@@ -144,7 +203,7 @@ HTML;
             foreach($array as $key => $line){
 
                 $program = $line["PROGRAM"];
-                $percentage = $line["PERCENTAGE"];
+                $percentage = key_exists("PERCENTAGE", $line) ? $line["PERCENTAGE"] : 'Straight Distribution';
                 $accrual = $line["ACCRUAL"];
                 $earningCode = $line["EARNING CODE"];
 
@@ -162,7 +221,7 @@ HTML;
             $ui[] = '</div>';
         }
 
-        $exportHeaders = array("Key", "Name", "E_Holiday_Hours", "E_Other $$_Hours", "E_Training_Hours", "E_Jury Duty_Hours", "E_Funeral Leave_Hours", "E_Extended Illnes_Hours", "E_PTO_Hours", "E_Event_Hours", "E_Other-WRI_Hours", "LaborValue3");
+        $exportHeaders = array("Key", "Name", "E_Holiday_Hours", "E_E08_Hours", "E_Training_Hours", "E_Jury Duty_Hours", "E_Funeral Leave_Hours", "E_Extended Illnes_Hours", "E_PTO_Hours", "E_Event_Hours", "E_Other-WRI_Hours", "LaborValue3", "E_E01_Hours", "E_E35_Hours", "E_E37_Hours", "E_E33_Hours");
         $indexes = array('E05'=> 2, 'E08' => 3, 'E11' => 4,'E12' => 5, 'E15' => 6, 'E17' => 7, 'E18' => 8,'E19' => 9, 'E26' => 10);
         $values = array();
         foreach($calculationData2 as $eeNum => $arr) {
@@ -170,13 +229,25 @@ HTML;
                 foreach ($array as $key => $line) {
                     $index = $line["EARNING CODE"];
                     $column = $indexes[$index];
-                    $values = array($eeNum, $line["EE NAME"], '', '', '', '', '', '', '', '', '', $line["PROGRAM"]);
+                    $values = array($eeNum, $line["EE NAME"], '', '', '', '', '', '', '', '', '', $line["PROGRAM"],'','','','');
                     $values[$column] = (string)$line["ACCRUAL"];
                     $output[] = $values;
                 }
             }
         }
-        //var_dump($output);
+
+        foreach($valuesToDuplicate as $key => $value){
+            if($value[2] == 'E02'){
+                $output[] = array($value[0], $value[1], '', '', '', '', '', '', '', '', '', $value[5],$value[4],'','','');
+            }else if($value[2] == 'E40'){
+                $output[] = array($value[0], $value[1], '', '', '', '', '', '', '', '', '', $value[5],'',$value[4],'','');
+            }else if($value[2] == 'E42'){
+                $output[] = array($value[0], $value[1], '', '', '', '', '', '', '', '', '', $value[5],'','',$value[4],'');
+            }else if($value[2] == 'E38'){
+                $output[] = array($value[0], $value[1], '', '', '', '', '', '', '', '', '', $value[5],'','','',$value[4]);
+            }
+        }
+        //var_dump("OUTPUT", $output);
         sort($output);
         array_unshift($output,  $exportHeaders);
 
