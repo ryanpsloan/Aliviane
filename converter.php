@@ -34,7 +34,7 @@ try {
         }
         //var_dump($fileData);
         $data = $toProcess = $ui = array();
-        $codesToCapture = array('M05','M08','M11','M12','M15','M17','M18','M19','M26','M43');
+        $codesToCapture = array('M05','M08','M11','M12','M15','M17','M18','M19','M26','M43','M45');
         $codesToSkip = array('M20','M21','M22','M23','M24','M25');
         $codesToCalculate = array('E01','E02','E07','E18','E33','E35','E37','E38','E40','E42');
         foreach($fileData as $key => $line){
@@ -124,11 +124,11 @@ try {
                 $hours = $line["HOURS"];
                 $totalHours = $eeHoursWorked[$eeNum];
                 //var_dump($hours, $totalHours);
-                $percentage = $hours / $totalHours;
+                $percentage = round($hours / $totalHours, 4);
                 //var_dump($percentage);
                 $program = $line["PROGRAM"];
                 $homeProgram = $line["HOME PROGRAM"];
-                $calculationData[$eeNum][] = array("PERCENTAGE" => round($percentage, 2), "PROGRAM" => $program, "EE NAME" => $line["EE NAME"], "HOME PROGRAM" => $homeProgram);
+                $calculationData[$eeNum][] = array("PERCENTAGE" => $percentage, "PROGRAM" => $program, "EE NAME" => $line["EE NAME"], "HOME PROGRAM" => $homeProgram);
             }
         }
         //var_dump("CALCDATA", $calculationData);
@@ -137,6 +137,7 @@ try {
             if(in_array($eeNum, $eeIdsWithMoreThanOneOfSameMCode)){
                 for ($i = 0; $i < count($array); $i++) {
                     $hoursToDistribute = $mHours[$eeNum][$i]['HOURS'];
+                    //var_dump($hoursToDistribute);
                     $earningCode = $mCodes[$eeNum][$i];
                     $arr = $calculationData[$eeNum] ? $calculationData[$eeNum] : null;
                     if ($arr === null) {
@@ -149,7 +150,7 @@ try {
                     //var_dump($eeNum. "CONDITION", $mHoursLineProgram == $mLineHomeProgram);
                     if($mHoursLineProgram === $mLineHomeProgram){
                         $calculationData2[$eeNum][] = array_map(function ($element) use ($hoursToDistribute, $earningCode) {
-                            $element["ACCRUAL"] = round(($element["PERCENTAGE"] * $hoursToDistribute), 2);
+                            $element["ACCRUAL"] = ($element["PERCENTAGE"] * $hoursToDistribute);
                             $element["HOURS TO DISTRIBUTE"] = $hoursToDistribute;
                             $element["EARNING CODE"] = str_replace("M", "E", $earningCode);
                             //var_dump($element);
@@ -162,6 +163,7 @@ try {
             } else {
                 for ($i = 0; $i < count($array); $i++) {
                     $hoursToDistribute = $mHours[$eeNum][$i]['HOURS'];
+                    //var_dump($hoursToDistribute);
                     $earningCode = $mCodes[$eeNum][$i];
                     $arr = key_exists($eeNum, $calculationData) ? $calculationData[$eeNum] : null;
                     if ($arr === null) {
@@ -172,7 +174,7 @@ try {
                     //var_dump("ARR", $arr);
 
                     $calculationData2[$eeNum][] = array_map(function ($element) use ($hoursToDistribute, $earningCode) {
-                        $element["ACCRUAL"] = round(($element["PERCENTAGE"] * $hoursToDistribute), 2);
+                        $element["ACCRUAL"] = ($element["PERCENTAGE"] * $hoursToDistribute);
                         $element["HOURS TO DISTRIBUTE"] = $hoursToDistribute;
                         $element["EARNING CODE"] = str_replace("M", "E", $earningCode);
                         //var_dump($element);
@@ -221,8 +223,8 @@ HTML;
             $ui[] = '</div>';
         }
 
-        $exportHeaders = array("Key", "Name", "E_Holiday_Hours", "E_E08_Hours", "E_Training_Hours", "E_Jury Duty_Hours", "E_Funeral Leave_Hours", "E_Extended Illnes_Hours", "E_PTO_Hours", "E_Event_Hours", "E_Other-WRI_Hours", "LaborValue3", "E_E01_Hours", "E_E35_Hours", "E_E37_Hours", "E_E33_Hours", "E_E43_Hours");
-        $indexes = array('E05'=> 2, 'E08' => 3, 'E11' => 4,'E12' => 5, 'E15' => 6, 'E17' => 7, 'E18' => 8,'E19' => 9, 'E26' => 10, 'E43' => 16);
+        $exportHeaders = array("Key", "Name", "E_Holiday_Hours", "E_E08_Hours", "E_Training_Hours", "E_Jury Duty_Hours", "E_Funeral Leave_Hours", "E_Extended Illnes_Hours", "E_PTO_Hours", "E_Event_Hours", "E_Other-WRI_Hours", "LaborValue3", "E_E01_Hours", "E_E35_Hours", "E_E37_Hours", "E_E33_Hours", "E_E43_Hours", "E_E45_Hours");
+        $indexes = array('E05'=> 2, 'E08' => 3, 'E11' => 4,'E12' => 5, 'E15' => 6, 'E17' => 7, 'E18' => 8,'E19' => 9, 'E26' => 10, 'E43' => 16, 'E45' => 17);
         $values = array();
         foreach($calculationData2 as $eeNum => $arr) {
             foreach ($arr as $array) {
