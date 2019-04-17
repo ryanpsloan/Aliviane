@@ -124,7 +124,7 @@ try {
                 $hours = $line["HOURS"];
                 $totalHours = $eeHoursWorked[$eeNum];
                 //var_dump($hours, $totalHours);
-                $percentage = round($hours / $totalHours, 4);
+                $percentage = round(($hours / $totalHours),4);
                 //var_dump($percentage);
                 $program = $line["PROGRAM"];
                 $homeProgram = $line["HOME PROGRAM"];
