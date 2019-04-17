@@ -231,7 +231,7 @@ HTML;
                 foreach ($array as $key => $line) {
                     $index = $line["EARNING CODE"];
                     $column = $indexes[$index];
-                    $values = array($eeNum, $line["EE NAME"], '', '', '', '', '', '', '', '', '', $line["PROGRAM"],'','','','');
+                    $values = array($eeNum, $line["EE NAME"], '', '', '', '', '', '', '', '', '', $line["PROGRAM"],'','','','','','');
                     $values[$column] = (string)$line["ACCRUAL"];
                     $output[] = $values;
                 }
