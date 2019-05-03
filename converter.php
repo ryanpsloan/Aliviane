@@ -223,8 +223,9 @@ HTML;
             $ui[] = '</div>';
         }
 
-        $exportHeaders = array("Key", "Name", "E_Holiday_Hours", "E_E08_Hours", "E_Training_Hours", "E_Jury Duty_Hours", "E_Funeral Leave_Hours", "E_E17_Hours", "E_PTO_Hours", "E_Event_Hours", "E_Other-WRI_Hours", "LaborValue3", "E_E01_Hours", "E_E35_Hours", "E_E37_Hours", "E_E33_Hours", "E_E43_Hours", "E_E45_Hours", "E_E46_Hours", "E_E47_Hours", "E_E48_Hours");
-        $indexes = array('E05'=> 2, 'E08' => 3, 'E11' => 4,'E12' => 5, 'E15' => 6, 'E17' => 7, 'E18' => 8,'E19' => 9, 'E26' => 10, 'E43' => 16, 'E45' => 17, 'E44' => 18, 'E46' => 19, 'E47' => 20, 'E48' => 21);
+        $exportHeaders = array("Key", "Name", "E_E05_Hours", "E_E08_Hours", "E_E11_Hours", "E_E12_Hours", "E_E15_Hours", "E_E17_Hours", "E_E18_Hours", "E_E19_Hours", "E_E26_Hours", "LaborValue3", "E_E01_Hours", "E_E35_Hours", "E_E37_Hours", "E_E33_Hours", "E_E43_Hours", "E_E44_Hours", "E_E45_Hours", "E_E46_Hours", "E_E47_Hours", "E_E48_Hours");
+                                                                                                                                // 11 - Program, 12 - 15 down below
+        $indexes = array('E05'=> 2, 'E08' => 3, 'E11' => 4,'E12' => 5, 'E15' => 6, 'E17' => 7, 'E18' => 8, 'E19' => 9, 'E26' => 10, 'E43' => 16, 'E44' => 17, 'E45' => 18, 'E46' => 19, 'E47' => 20, 'E48' => 21);
         $values = array();
         foreach($calculationData2 as $eeNum => $arr) {
             foreach ($arr as $array) {
@@ -240,13 +241,13 @@ HTML;
 
         foreach($valuesToDuplicate as $key => $value){
             if($value[2] == 'E02'){
-                $output[] = array($value[0], $value[1], '', '', '', '', '', '', '', '', '', $value[5],$value[4],'','','');
+                $output[] = array($value[0], $value[1], '', '', '', '', '', '', '', '', '', $value[5],$value[4],'','','','','','','','','');
             }else if($value[2] == 'E40'){
-                $output[] = array($value[0], $value[1], '', '', '', '', '', '', '', '', '', $value[5],'',$value[4],'','');
+                $output[] = array($value[0], $value[1], '', '', '', '', '', '', '', '', '', $value[5],'',$value[4],'','','','','','','','');
             }else if($value[2] == 'E42'){
-                $output[] = array($value[0], $value[1], '', '', '', '', '', '', '', '', '', $value[5],'','',$value[4],'');
+                $output[] = array($value[0], $value[1], '', '', '', '', '', '', '', '', '', $value[5],'','',$value[4],'','','','','','','');
             }else if($value[2] == 'E38'){
-                $output[] = array($value[0], $value[1], '', '', '', '', '', '', '', '', '', $value[5],'','','',$value[4]);
+                $output[] = array($value[0], $value[1], '', '', '', '', '', '', '', '', '', $value[5],'','','',$value[4],'','','','','','');
             }
         }
         //var_dump("OUTPUT", $output);
